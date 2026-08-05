@@ -1,0 +1,97 @@
+@import "tailwindcss";
+
+@layer utilities {
+  .animate-in {
+    animation-fill-mode: both;
+  }
+
+  .slide-in-from-top {
+    animation-name: slideInFromTop;
+  }
+
+  .slide-in-from-bottom {
+    animation-name: slideInFromBottom;
+  }
+
+  .duration-200 {
+    animation-duration: 200ms;
+  }
+
+  .duration-300 {
+    animation-duration: 300ms;
+  }
+
+  .duration-700 {
+    animation-duration: 700ms;
+  }
+
+  .delay-100 {
+    animation-delay: 100ms;
+  }
+
+  .delay-200 {
+    animation-delay: 200ms;
+  }
+
+  .delay-300 {
+    animation-delay: 300ms;
+  }
+}
+
+@keyframes slideInFromBottom {
+  from {
+    opacity: 0;
+    transform: translateY(1rem);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideInFromTop {
+  from {
+    opacity: 0;
+    transform: translateY(-1rem);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.sparkle {
+  position: absolute;
+  right: -52px;
+  bottom: -80px;
+  font-size: 4.5rem;
+  color: #6b7280;
+}
+
+/* Tablet / Mobile */
+@media screen and (max-width: 767px) {
+  .sparkle {
+    right: 5px;
+    bottom: -45px;
+    font-size: 3rem;
+  }
+}
+
+/* Short screen */
+@media screen and (max-height: 650px) {
+  .sparkle {
+    right: 5px;
+    bottom: -32px;
+    font-size: 2.25rem;
+  }
+}
+
+@media screen and (max-height: 550px) {
+  .sparkle {
+    right: 5px;
+    bottom: -16px;
+    font-size: 1.5rem;
+  }
+}
