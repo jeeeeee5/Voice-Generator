@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { voicePresets as defaultPresets } from "../data/presetData";
+import { voicePresets as defaultPresets } from "../services/presetData";
 
 export default function VoicePresets({
   selectedVoice,

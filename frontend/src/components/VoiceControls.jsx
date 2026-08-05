@@ -1,4 +1,4 @@
-import { voices, voiceStyles, emotions, speakingStyles, } from "../data/voiceOptions";
+import { voices, voiceStyles, emotions, speakingStyles, } from "../services/voiceOptions";
 
 function VoiceControls({
   selectedVoice,
