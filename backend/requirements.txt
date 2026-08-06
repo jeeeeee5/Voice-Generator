@@ -97,6 +97,7 @@ Pygments==2.20.0
 pynndescent==0.6.0
 pyparsing==3.3.2
 pypinyin==0.55.0
+pyrubberband==0.4.0
 pysbd==0.3.4
 python-crfsuite==0.9.12
 python-dateutil==2.9.0.post0
