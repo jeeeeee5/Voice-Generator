@@ -7,7 +7,16 @@ import soundfile as sf
 from models.loader import tts
 from models.voice_model import EMOTION_DSP
 from inference.preprocess import build_speaker_refs
-from utils.audio import apply_speed, apply_pitch, apply_emotion_gain, apply_expressiveness, clip_audio
+from inference.tag_parser import parse_tagged_text
+from utils.audio import (
+    apply_pitch,
+    apply_emotion_gain,
+    apply_expressiveness,
+    clip_audio,
+    generate_silence,
+    load_sfx,
+    concat_segments,
+)
 
 
 def generate_speech(
@@ -24,9 +33,19 @@ def generate_speech(
     language: str = "en",
 ) -> str:
     """
-    Generate speech by blending voice identity + style + emotion
-    reference clips, then apply a light DSP pass driven by the
-    speed/pitch/emotion_level/expressiveness sliders.
+    Generate speech from text that may contain (Emotion) tags and pause
+    markers (see inference/tag_parser.py — (Nervous), (Sigh), "...", ",",
+    "[Pause]" etc). Plain text with no tags behaves the same as before,
+    using `emotion` as a flat setting for the whole line.
+
+    Tagged text is split into segments by parse_tagged_text(): each speech
+    segment is generated separately with its own emotion's DSP settings,
+    pause markers become explicit silence, and (Sigh)/(Laugh) become
+    standalone sfx clips. Everything is stitched back into one wav file.
+
+    Note: a multi-segment line calls the TTS model once per segment, so
+    generation time scales with how many tags/pauses are in the text —
+    this is slower than the old single-shot approach.
 
     Returns the path to the generated wav file.
     """
@@ -34,47 +53,80 @@ def generate_speech(
     if out_dir:
         os.makedirs(out_dir, exist_ok=True)
 
-    speaker_refs, emotion_weight, voice_ref, style_ref, emotion_ref, speaking_style_ref = build_speaker_refs(
-        voice, style, emotion, speaking_style, emotion_level
-    )
+    segments = parse_tagged_text(text, default_emotion=emotion)
 
-    print(f"Blend -> voice:3, style:2 speaking_style:1, emotion:{emotion_weight} ")
-    print("Voice:", voice, "->", voice_ref)
-    print("Style:", style, "->", style_ref)
-    print("Speaking Style:", speaking_style, "->", speaking_style_ref)
-    print("Emotion:", emotion, "->", emotion_ref, "(included)" if emotion_level >= 15 else "(skipped, low intensity)")
-    print("Reference blend:", speaker_refs)
+    if not segments:
+        raise ValueError("No speech content found in the input text.")
 
-    dsp = EMOTION_DSP.get(emotion, EMOTION_DSP["Neutral"])
-
-    temp_path = f"outputs/generated_audio/temp_{uuid.uuid4().hex}.wav"
+    sample_rate = None
+    audio_chunks = []  # list of ("speech", ndarray) | ("pause", seconds) | ("sfx", name)
+    temp_files = []
 
     try:
-        final_speed = speed * dsp["speed"]
-        
-        tts.tts_to_file(
-            text=text,
-            speaker_wav=speaker_refs,  # list -> XTTS blends the embeddings
-            language=language,
-            speed=final_speed,
-            temperature=dsp["temperature"],
-            file_path=temp_path,
-        )
+        for seg in segments:
+            if seg["type"] == "pause":
+                audio_chunks.append(("pause", seg["duration"]))
+                continue
 
-        audio, sample_rate = librosa.load(temp_path, sr=None)
+            if seg["type"] == "sfx":
+                audio_chunks.append(("sfx", seg["sfx"]))
+                continue
 
-        audio = apply_speed(audio, sample_rate, final_speed)
+            # seg["type"] == "speech"
+            seg_emotion = seg["emotion"] if seg["emotion"] in EMOTION_DSP else "Neutral"
+            dsp = EMOTION_DSP[seg_emotion]
 
-        final_pitch = pitch + dsp["pitch"]
-        audio = apply_pitch(audio, sample_rate, final_pitch)
+            speaker_refs, emotion_weight, voice_ref, style_ref, emotion_ref, speaking_style_ref = build_speaker_refs(
+                voice, style, seg_emotion, speaking_style, emotion_level
+            )
 
-        # emotion_level (0-100) controls how much the emotion clip's
-        # designed gain contributes to the final output.
-        audio = apply_emotion_gain(audio, dsp["gain"], emotion_level)
-        audio = apply_expressiveness(audio, expressiveness)
-        audio = clip_audio(audio)
+            print(f"[segment] emotion={seg_emotion!r} text={seg['text']!r}")
 
-        sf.write(output_path, audio, sample_rate)
+            final_speed = speed * dsp["speed"]
+
+            temp_path = f"outputs/generated_audio/temp_{uuid.uuid4().hex}.wav"
+            temp_files.append(temp_path)
+
+            tts.tts_to_file(
+                text=seg["text"],
+                speaker_wav=speaker_refs,
+                language=language,
+                speed=final_speed,  # handled by the model itself, not a post-hoc stretch
+                temperature=dsp["temperature"],
+                file_path=temp_path,
+            )
+
+            seg_audio, sr = librosa.load(temp_path, sr=None)
+            if sample_rate is None:
+                sample_rate = sr
+
+            final_pitch = pitch + dsp["pitch"]
+            seg_audio = apply_pitch(seg_audio, sr, final_pitch)
+            seg_audio = apply_emotion_gain(seg_audio, dsp["gain"], emotion_level)
+            seg_audio = apply_expressiveness(seg_audio, expressiveness)
+            seg_audio = clip_audio(seg_audio)
+
+            audio_chunks.append(("speech", seg_audio))
+
+        if sample_rate is None:
+            raise ValueError(
+                "Could not determine a sample rate — the input text produced "
+                "no speech segments (only pauses/sfx)."
+            )
+
+        # Pause/sfx chunks were queued before we knew the model's sample
+        # rate, so resolve them into real audio now.
+        resolved_chunks = []
+        for kind, payload in audio_chunks:
+            if kind == "speech":
+                resolved_chunks.append(payload)
+            elif kind == "pause":
+                resolved_chunks.append(generate_silence(payload, sample_rate))
+            elif kind == "sfx":
+                resolved_chunks.append(load_sfx(payload, sample_rate))
+
+        final_audio = concat_segments(resolved_chunks)
+        sf.write(output_path, final_audio, sample_rate)
         return output_path
 
     except Exception as e:
@@ -82,19 +134,20 @@ def generate_speech(
         raise
 
     finally:
-        if os.path.exists(temp_path):
-            os.remove(temp_path)
+        for path in temp_files:
+            if os.path.exists(path):
+                os.remove(path)
 
 
 if __name__ == "__main__":
-    # quick manual smoke test
+    # quick manual smoke test — includes emotion tags and pause markers
     result = generate_speech(
-        text="Welcome to our world.",
+        text="(Nervous) I don't know... maybe we should leave. (Sigh)",
         voice="Sarah",
         style="Storytelling",
         speaking_style="Casual",
-        emotion="Happy",
-        output_path="outputs/generated_audio/demo.wav",
+        emotion="Neutral",
+        output_path="outputs/generated_audio/demo_tags.wav",
         speed=1.0,
         pitch=0,
         emotion_level=70,

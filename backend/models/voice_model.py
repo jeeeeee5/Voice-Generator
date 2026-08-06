@@ -32,23 +32,57 @@ VOICE_STYLE_MAP = {
 }
 DEFAULT_STYLE_REF = "voices/style/narrator.wav"
 
+# NOTE: "Scared" replaces the old "Fearful" naming to match the emotion-tag
+# spec. If any saved presets/UI code still reference "Fearful", update them
+# to "Scared" too.
 EMOTION_AUDIO_MAP = {
     "Neutral": "voices/emotion/neutral.wav",
     "Happy": "voices/emotion/happy.wav",
     "Sad": "voices/emotion/sad.wav",
     "Angry": "voices/emotion/angry.wav",
-    "Fearful": "voices/emotion/fearful.wav",
+    "Nervous": "voices/emotion/nervous.wav",
+    "Scared": "voices/emotion/scared.wav",
+    "Whisper": "voices/emotion/whisper.wav",
     "Excited": "voices/emotion/excited.wav",
+    "Laugh": "voices/emotion/laugh.wav",
+    "Sigh": "voices/emotion/sigh.wav",
+    "Crying": "voices/emotion/crying.wav",
+    "Serious": "voices/emotion/serious.wav",
+    "Calm": "voices/emotion/calm.wav",
+    "Confident": "voices/emotion/confident.wav",
+    "Surprised": "voices/emotion/surprised.wav",
+    "Disappointed": "voices/emotion/disappointed.wav",
 }
 DEFAULT_EMOTION_REF = "voices/emotion/neutral.wav"
 
+# DSP parameters per emotion tag.
+#   speed       multiplier applied on top of the user's speed slider
+#   pitch       semitone offset added on top of the user's pitch slider
+#   gain        volume multiplier (scaled by emotion_level, see utils/audio.py)
+#   temperature XTTS sampling temperature — higher = more expressive/variable,
+#               lower = flatter and more monotone
+#
+# These are starting points based on the "Emotion Effects" spec
+# (shaky/slower for Nervous, lower+slower for Sad, stronger/higher-intensity
+# for Angry, higher-energy/faster for Happy, breathy/quieter for
+# Sigh/Whisper, etc). Tune by ear against real generations.
 EMOTION_DSP = {
-    "Neutral": {"speed": 1.00, "pitch": 0, "gain": 1.00, "temperature": 0.65},
-    "Happy":   {"speed": 1.03, "pitch": 0, "gain": 1.05, "temperature": 0.75},
-    "Sad":     {"speed": 0.96, "pitch": 0, "gain": 0.92, "temperature": 0.55},
-    "Angry":   {"speed": 1.04, "pitch": 0, "gain": 1.10, "temperature": 0.80},
-    "Fearful": {"speed": 1.02, "pitch": 0, "gain": 0.95, "temperature": 0.78},
-    "Excited": {"speed": 1.05, "pitch": 0, "gain": 1.08, "temperature": 0.85},
+    "Neutral":      {"speed": 1.00, "pitch": 0,  "gain": 1.00, "temperature": 0.65},
+    "Happy":        {"speed": 1.08, "pitch": 1,  "gain": 1.05, "temperature": 0.75},
+    "Sad":          {"speed": 0.90, "pitch": -2, "gain": 0.90, "temperature": 0.55},
+    "Angry":        {"speed": 1.04, "pitch": 0,  "gain": 1.15, "temperature": 0.85},
+    "Nervous":      {"speed": 0.95, "pitch": 0,  "gain": 0.95, "temperature": 0.85},
+    "Scared":       {"speed": 1.05, "pitch": 1,  "gain": 0.95, "temperature": 0.80},
+    "Whisper":      {"speed": 0.95, "pitch": 0,  "gain": 0.50, "temperature": 0.60},
+    "Excited":      {"speed": 1.12, "pitch": 1,  "gain": 1.10, "temperature": 0.85},
+    "Laugh":        {"speed": 1.05, "pitch": 0,  "gain": 1.05, "temperature": 0.75},
+    "Sigh":         {"speed": 0.95, "pitch": 0,  "gain": 0.85, "temperature": 0.60},
+    "Crying":       {"speed": 0.88, "pitch": -1, "gain": 0.85, "temperature": 0.85},
+    "Serious":      {"speed": 0.98, "pitch": -1, "gain": 1.00, "temperature": 0.55},
+    "Calm":         {"speed": 0.95, "pitch": 0,  "gain": 0.95, "temperature": 0.55},
+    "Confident":    {"speed": 1.00, "pitch": 0,  "gain": 1.05, "temperature": 0.65},
+    "Surprised":    {"speed": 1.08, "pitch": 2,  "gain": 1.05, "temperature": 0.80},
+    "Disappointed": {"speed": 0.92, "pitch": -1, "gain": 0.90, "temperature": 0.60},
 }
 
 SPEAKING_STYLE_MAP = {

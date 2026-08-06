@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Volume2 } from "lucide-react";
 import PromptBox from "../components/PromptBox";
+import TagHelper from "../components/TagHelper";
 import VoiceCard from "../components/VoiceCard";
 import SettingsPanel from "../components/SettingsPanel";
 import AudioPlayer from "../components/AudioPlayer";
@@ -17,6 +18,7 @@ const defaultWaveform = [
 ];
 
 export default function Home() {
+  const textareaRef = useRef(null);
   const [clicked, setClicked] = useState(false);
   const [text, setText] = useState("");
   const [audioUrl, setAudioUrl] = useState(null);
@@ -157,7 +159,7 @@ export default function Home() {
   };
 
   return (
-    <section className=" pt-28 px-6 md:px-28 xl:px-32 mb-4">
+    <section className=" pt-28 px-6 md:px-28 xl:px-32">
       {/* Heading */}
       <h1 className="text-4xl font-bold mb-3">
         AI Text-to-Voice Generator
@@ -171,7 +173,14 @@ export default function Home() {
       <div className="grid grid-cols-1 md:grid-cols-[1fr_360px] gap-6 items-stretch">
         {/* Left side */}
         <div>
-          <PromptBox text={text} setText={setText} />
+          <PromptBox ref={textareaRef} text={text} setText={setText} />
+
+          <TagHelper
+            text={text}
+            setText={setText}
+            textareaRef={textareaRef}
+            defaultEmotion={selectedEmotion}
+          />
 
           <VoiceCard
             selectedVoice={selectedVoice}
