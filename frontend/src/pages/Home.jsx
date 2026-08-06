@@ -157,7 +157,7 @@ export default function Home() {
   };
 
   return (
-    <section className=" pt-28 px-6 md:px-28 xl:px-32">
+    <section className=" pt-28 px-6 md:px-28 xl:px-32 mb-4">
       {/* Heading */}
       <h1 className="text-4xl font-bold mb-3">
         AI Text-to-Voice Generator
