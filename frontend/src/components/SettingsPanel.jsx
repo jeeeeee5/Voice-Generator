@@ -28,7 +28,7 @@ export default function SettingsPanel({
           type="range"
           min="0.5"
           max="2"
-          step="0.1"
+          step="0.05"
           value={speed}
           onChange={(e) => setSpeed(Number(e.target.value))}
           className="w-full accent-white"

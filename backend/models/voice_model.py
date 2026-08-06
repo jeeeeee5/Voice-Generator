@@ -44,11 +44,11 @@ DEFAULT_EMOTION_REF = "voices/emotion/neutral.wav"
 
 EMOTION_DSP = {
     "Neutral": {"speed": 1.00, "pitch": 0, "gain": 1.00, "temperature": 0.65},
-    "Happy":   {"speed": 1.03, "pitch": +2, "gain": 1.05, "temperature": 0.75},
+    "Happy":   {"speed": 1.03, "pitch": +1, "gain": 1.05, "temperature": 0.75},
     "Sad":     {"speed": 0.96, "pitch": -1, "gain": 0.92, "temperature": 0.55},
     "Angry":   {"speed": 1.04, "pitch": -1, "gain": 1.10, "temperature": 0.80},
-    "Fearful": {"speed": 1.02, "pitch": +2, "gain": 0.95, "temperature": 0.78},
-    "Excited": {"speed": 1.05, "pitch": +2, "gain": 1.08, "temperature": 0.85},
+    "Fearful": {"speed": 1.02, "pitch": +1, "gain": 0.95, "temperature": 0.78},
+    "Excited": {"speed": 1.05, "pitch": +1, "gain": 1.08, "temperature": 0.85},
 }
 
 SPEAKING_STYLE_MAP = {
