@@ -23,6 +23,7 @@ export default function VoiceCard({
   const [presets, setPresets] = useState(defaultPresets);
   const [selectedPreset, setSelectedPreset] = useState("");
   const [presetName, setPresetName] = useState("");
+  const [deleteConfirm, setDeleteConfirm] = useState(false);
 
   useEffect(() => {
     const savedPresets = localStorage.getItem("voicePresets");
@@ -199,7 +200,7 @@ export default function VoiceCard({
             {selectedPreset && !defaultPresets.some((preset) => preset.name === selectedPreset) && (
               <button
                 type="button"
-                onClick={deletePreset}
+                onClick={() => setDeleteConfirm(true)}
                 className="
                   absolute
                   right-8
@@ -264,6 +265,65 @@ export default function VoiceCard({
           </button>
         </div>
       </div>
+
+      {/* Delete Confirmation Modal */}
+      {deleteConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
+          <div className="w-[300px] rounded-xl bg-[#29292E] border-2 border-white/10 p-4">
+
+            <h2 className="text-lg font-semibold text-white">
+              Delete Voice Preset
+            </h2>
+
+            <p className="mt-2 text-gray-300">
+              Are you sure you want to delete
+            </p>
+
+            <p className="mt-1 text-gray-300">
+              "<span className="text-white font-medium">{selectedPreset}</span>"?
+            </p>
+
+            <p className="mt-3 text-sm text-gray-400">
+              This action cannot be undone.
+            </p>
+
+            <div className="flex justify-end gap-3 mt-3">
+              <button
+                type="button"
+                onClick={() => setDeleteConfirm(false)}
+                className="
+                  px-2 py-1
+                  rounded-lg
+                  text-gray-300
+                  hover:bg-white/10
+                  transition
+                "
+              >
+                Cancel
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  deletePreset();
+                  setDeleteConfirm(false);
+                }}
+                className="
+                  px-2 py-1
+                  rounded-lg
+                  bg-red-600
+                  text-white
+                  hover:bg-red-700
+                  transition
+                "
+              >
+                Delete
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
     </div>
   );
 }
