@@ -12,6 +12,7 @@ export const voices = [
 ];
 
 export const voiceStyles = [
+  "None",
   "Warm",
   "Calm",
   "Deep",
@@ -32,6 +33,7 @@ export const emotions = [
 ];
 
 export const speakingStyles = [
+  "None",
   "Casual",
   "Professional",
   "Cinematic",

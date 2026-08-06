@@ -50,18 +50,19 @@ def generate_speech(
     temp_path = f"outputs/generated_audio/temp_{uuid.uuid4().hex}.wav"
 
     try:
+        final_speed = speed * dsp["speed"]
+        
         tts.tts_to_file(
             text=text,
             speaker_wav=speaker_refs,  # list -> XTTS blends the embeddings
             language=language,
-            speed=1.0,  # raw model speed left neutral; we apply speed below
+            speed=final_speed,
             temperature=dsp["temperature"],
             file_path=temp_path,
         )
 
         audio, sample_rate = librosa.load(temp_path, sr=None)
 
-        final_speed = speed * dsp["speed"]
         audio = apply_speed(audio, sample_rate, final_speed)
 
         final_pitch = pitch + dsp["pitch"]
