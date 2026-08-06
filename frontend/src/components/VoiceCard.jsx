@@ -24,6 +24,8 @@ export default function VoiceCard({
   const [selectedPreset, setSelectedPreset] = useState("");
   const [presetName, setPresetName] = useState("");
   const [deleteConfirm, setDeleteConfirm] = useState(false);
+  const [overwriteConfirm, setOverwriteConfirm] = useState(false);
+  const [pendingPreset, setPendingPreset] = useState(null);
 
   useEffect(() => {
     const savedPresets = localStorage.getItem("voicePresets");
@@ -60,30 +62,93 @@ export default function VoiceCard({
       expressiveness: expressiveness,
     };
 
-    const savedPresets = JSON.parse(localStorage.getItem("voicePresets") || "[]");
+    const savedPresets = JSON.parse(
+      localStorage.getItem("voicePresets") || "[]"
+    );
 
-    const updatedPresets = [
-      ...savedPresets.filter((preset) => preset.name !== newPreset.name),
-      newPreset,
-    ];
+    const existingPreset = [...defaultPresets, ...savedPresets].find(
+      (preset) => preset.name === newPreset.name
+    );
 
-    localStorage.setItem("voicePresets", JSON.stringify(updatedPresets));
+    const isEditingCurrentPreset =
+      selectedPreset === newPreset.name;
+
+    if (existingPreset && !isEditingCurrentPreset) {
+      setPendingPreset(newPreset);
+      setOverwriteConfirm(true);
+      return;
+    }
+
+    // Same name exists → ask for confirmation
+    if (existingPreset) {
+      setPendingPreset(newPreset);
+      setOverwriteConfirm(true);
+      return;
+    }
+
+    // Save new preset
+    const updatedPresets = [...savedPresets, newPreset];
+
+    localStorage.setItem(
+      "voicePresets",
+      JSON.stringify(updatedPresets)
+    );
 
     setPresets([...defaultPresets, ...updatedPresets]);
     setSelectedPreset(newPreset.name);
     setPresetName("");
   };
 
+  const overwritePreset = () => {
+    if (!pendingPreset) return;
+
+    const savedPresets = JSON.parse(
+      localStorage.getItem("voicePresets") || "[]"
+    );
+
+    // Replace the existing preset
+    const updatedPresets = [
+      ...savedPresets.filter(
+        (preset) => preset.name !== pendingPreset.name
+      ),
+      pendingPreset,
+    ];
+
+    localStorage.setItem(
+      "voicePresets",
+      JSON.stringify(updatedPresets)
+    );
+
+    setPresets([...defaultPresets, ...updatedPresets]);
+    setSelectedPreset(pendingPreset.name);
+    setPresetName("");
+
+    setPendingPreset(null);
+    setOverwriteConfirm(false);
+  };
+
   const deletePreset = () => {
     if (!selectedPreset) return;
 
-    const isDefaultPreset = defaultPresets.some((preset) => preset.name === selectedPreset);
+    const isDefaultPreset = defaultPresets.some(
+      (preset) => preset.name === selectedPreset
+    );
+
     if (isDefaultPreset) return;
 
-    const savedPresets = JSON.parse(localStorage.getItem("voicePresets") || "[]");
-    const updatedPresets = savedPresets.filter((preset) => preset.name !== selectedPreset);
+    const savedPresets = JSON.parse(
+      localStorage.getItem("voicePresets") || "[]"
+    );
 
-    localStorage.setItem("voicePresets", JSON.stringify(updatedPresets));
+    const updatedPresets = savedPresets.filter(
+      (preset) => preset.name !== selectedPreset
+    );
+
+    localStorage.setItem(
+      "voicePresets",
+      JSON.stringify(updatedPresets)
+    );
+
     setPresets([...defaultPresets, ...updatedPresets]);
     setSelectedPreset("");
   };
@@ -172,7 +237,12 @@ export default function VoiceCard({
                 setSelectedPreset(presetName);
 
                 const preset = presets.find((p) => p.name === presetName);
-                if (preset) applyPreset(preset);
+                if (preset) {
+                  applyPreset(preset);
+                  setPresetName(presetName);
+                } else {
+                  setPresetName("");
+                }
               }}
               className="
                 w-full
@@ -265,6 +335,65 @@ export default function VoiceCard({
           </button>
         </div>
       </div>
+
+      {/* Overwrite Confirmation Modal */}
+      {overwriteConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
+          <div className="w-[400px] rounded-xl bg-[#29292E] border border-white/10 p-6 shadow-2xl">
+
+            <h2 className="text-lg font-semibold text-white">
+              Preset Already Exists
+            </h2>
+
+            <p className="mt-4 text-gray-300">
+              A preset named{" "}
+              <span className="text-white font-medium">
+                "{pendingPreset?.name}"
+              </span>{" "}
+              already exists.
+            </p>
+
+            <p className="mt-3 text-sm text-gray-400">
+              Do you want to replace it?
+            </p>
+
+            <div className="flex justify-end gap-3 mt-6">
+              <button
+                type="button"
+                onClick={() => {
+                  setOverwriteConfirm(false);
+                  setPendingPreset(null);
+                }}
+                className="
+                  px-4 py-2
+                  rounded-lg
+                  text-gray-300
+                  hover:bg-white/10
+                  transition
+                "
+              >
+                Cancel
+              </button>
+
+              <button
+                type="button"
+                onClick={overwritePreset}
+                className="
+                  px-4 py-2
+                  rounded-lg
+                  bg-blue-600
+                  text-white
+                  hover:bg-blue-700
+                  transition
+                "
+              >
+                Replace
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
 
       {/* Delete Confirmation Modal */}
       {deleteConfirm && (

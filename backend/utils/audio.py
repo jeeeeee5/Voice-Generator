@@ -1,16 +1,15 @@
-import librosa
+import pyrubberband as pyrb
 import numpy as np
-
 
 def apply_speed(audio, sample_rate, speed):
     if speed != 1.0:
-        audio = librosa.effects.time_stretch(audio, rate=speed)
+        audio = pyrb.time_stretch(audio, sample_rate, speed)
     return audio
 
 
 def apply_pitch(audio, sample_rate, pitch):
     if pitch != 0:
-        audio = librosa.effects.pitch_shift(audio, sr=sample_rate, n_steps=pitch)
+        audio = pyrb.pitch_shift(audio, sample_rate, pitch)
     return audio
 
 
