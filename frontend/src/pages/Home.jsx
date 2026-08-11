@@ -89,7 +89,7 @@ export default function Home() {
     if(audioUrl) {
       URL.revokeObjectURL(audioUrl);
     }
-    
+
     setAudioUrl(null);
     setHasAudio(false);
     setWaveform(defaultWaveform);
@@ -186,6 +186,60 @@ export default function Home() {
       <div className="grid grid-cols-1 md:grid-cols-[1fr_360px] gap-6 mb-6">
         {/* Left side */}
         <div>
+          <PromptBox ref={textareaRef} text={text} setText={setText} language={language} />
+
+          {/* Generate button */}
+          <div className="relative mt-4">
+            <div className="absolute -inset-px rounded-xl bg-purple-500/20 blur-sm pointer-events-none" />
+
+            <button
+              onClick={generateVoice}
+              disabled={clicked || !text.trim()}
+              className="
+                relative group w-full h-16
+                flex items-center justify-center gap-2
+                bg-[#000042]
+                border-2 border-blue-500
+                rounded-xl
+                text-xl text-white font-bold
+                active:scale-95 transition
+                mb-6
+              "
+            >
+              <Volume2 className="w-6 h-6 fill-white" />
+
+              <span className="text-2xl font-bold">
+                {clicked ? "Generating..." : "Generate Voice"}
+              </span>
+            </button>
+
+            {/* Error message */}
+            {error && (
+              <p className="mt-2 text-red-400 text-sm">
+                {error}
+              </p>
+            )}
+          </div>
+
+          <AudioPlayer
+            audio={audio}
+            audioUrl={audioUrl}
+            hasAudio={hasAudio}
+            isGenerating={isGenerating}
+            waveform={waveform}
+            isPlaying={isPlaying}
+            setIsPlaying={setIsPlaying}
+            currentTime={currentTime}
+            setCurrentTime={setCurrentTime}
+            duration={duration}
+            volume={volume}
+            setVolume={setVolume}
+            removeOutput={removeOutput}
+          />
+        </div>
+
+        {/* Right side */}
+        <div className="md:sticky md:top-6 md:max-h-[calc(100vh-3rem)] md:overflow-y-auto md:pr-2 custom-scrollbar">
           <div className="flex gap-2 mb-3 h-6">
             <button
               type="button"
@@ -211,7 +265,6 @@ export default function Home() {
             </button>
           </div>
 
-          <PromptBox ref={textareaRef} text={text} setText={setText} language={language} />
           <TagHelper
             text={text}
             setText={setText}
@@ -252,60 +305,7 @@ export default function Home() {
             setExpressiveness={setExpressiveness}
           />
 
-          {/* Generate button */}
-          <div className="relative mt-4">
-            <div className="absolute -inset-1 rounded-xl bg-purple-500/20 blur-xl pointer-events-none" />
 
-            <button
-              onClick={generateVoice}
-              disabled={clicked || !text.trim()}
-              className="
-                relative group w-full h-16
-                flex items-center justify-center gap-2
-                bg-[#000042]
-                border-2 border-blue-500
-                rounded-xl
-                text-xl text-white font-bold
-                active:scale-95 transition
-                mb-6
-              "
-            >
-              <Volume2 className="w-6 h-6 fill-white" />
-
-              <span className="text-2xl font-bold">
-                {clicked ? "Generating..." : "Generate Voice"}
-              </span>
-            </button>
-
-            {/* Error message */}
-            {error && (
-              <p className="mt-2 text-red-400 text-sm">
-                {error}
-              </p>
-            )}
-          </div>
-        </div>
-
-        {/* Right side - Output panel */}
-        <div>
-          {/* Match the height of the language selector */}
-          <div className="pt-9" />
-
-          <AudioPlayer
-            audio={audio}
-            audioUrl={audioUrl}
-            hasAudio={hasAudio}
-            isGenerating={isGenerating}
-            waveform={waveform}
-            isPlaying={isPlaying}
-            setIsPlaying={setIsPlaying}
-            currentTime={currentTime}
-            setCurrentTime={setCurrentTime}
-            duration={duration}
-            volume={volume}
-            setVolume={setVolume}
-            removeOutput={removeOutput}
-          />
         </div>
       </div>
     </section>

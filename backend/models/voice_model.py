@@ -89,7 +89,7 @@ EMOTION_DSP = {
 
 VOICE_DSP = {
     "Evelyn": {
-        "speed": 0.88,
+        "speed": 0.80,
         "pitch": -0.5,
         "gain": 0.94,
     },
