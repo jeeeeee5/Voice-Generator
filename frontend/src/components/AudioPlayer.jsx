@@ -5,6 +5,7 @@ export default function AudioPlayer({
   audio,
   audioUrl,
   hasAudio,
+  isGenerating,
   waveform,
   isPlaying,
   setIsPlaying,
@@ -111,7 +112,7 @@ export default function AudioPlayer({
             {/* Play */}
             <button
               onClick={() => {
-                if (!audio) return;
+                if (!audio || isGenerating) return;
 
                 if (isPlaying) {
                   audio.pause();
@@ -121,7 +122,7 @@ export default function AudioPlayer({
                   setIsPlaying(true);
                 }
               }}
-              disabled={!audio}
+              disabled={!audio || isGenerating}
               className="
                 hover:bg-gray-700
                 active:scale-95

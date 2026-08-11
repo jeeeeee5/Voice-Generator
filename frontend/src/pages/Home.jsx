@@ -28,6 +28,7 @@ export default function Home() {
   const [audio, setAudio] = useState(null);
   const [volume, setVolume] = useState(1);
   const [error, setError] = useState("");
+  const [isGenerating, setIsGenerating] = useState(false);
 
   { /* State for voice options */ }
   const [selectedVoice, setSelectedVoice] = useState("Michael");
@@ -40,6 +41,8 @@ export default function Home() {
   const [pitch, setPitch] = useState(0);
   const [emotionLevel, setEmotionLevel] = useState(50);
   const [expressiveness, setExpressiveness] = useState(50);
+
+  const [language, setLanguage] = useState("en"); // "en" | "zh"
 
   const [waveform, setWaveform] = useState(defaultWaveform);
   const [hasAudio, setHasAudio] = useState(false);
@@ -71,17 +74,25 @@ export default function Home() {
 
     setError("");
     setClicked(true);
+    setIsGenerating(true);
 
     if (audio) {
       audio.pause();
       audio.currentTime = 0;
+      setAudio(null);
     }
 
     setIsPlaying(false);
     setCurrentTime(0);
     setDuration(0);
+
+    if(audioUrl) {
+      URL.revokeObjectURL(audioUrl);
+    }
+    
     setAudioUrl(null);
     setHasAudio(false);
+    setWaveform(defaultWaveform);
 
     try {
       const audioBlob = await requestVoice({
@@ -94,6 +105,7 @@ export default function Home() {
         emotion: selectedEmotion,
         emotion_level: emotionLevel,
         expressiveness: expressiveness,
+        language: language === "zh" ? "zh-cn" : "en",
       });
 
       const url = URL.createObjectURL(audioBlob);
@@ -155,6 +167,7 @@ export default function Home() {
       setError("Failed to generate voice. Please try again.");
     } finally {
       setClicked(false);
+      setIsGenerating(false);
     }
   };
 
@@ -170,16 +183,41 @@ export default function Home() {
       </p>
 
       {/* Main grid */}
-      <div className="grid grid-cols-1 md:grid-cols-[1fr_360px] gap-6 items-stretch mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-[1fr_360px] gap-6 mb-6">
         {/* Left side */}
         <div>
-          <PromptBox ref={textareaRef} text={text} setText={setText} />
+          <div className="flex gap-2 mb-3 h-6">
+            <button
+              type="button"
+              onClick={() => setLanguage("en")}
+              className={`px-3 py-1 text-xs rounded-full border transition ${
+                language === "en"
+                  ? "bg-blue-600 border-blue-500 text-white"
+                  : "bg-[#29292E] border-white/20 text-gray-300"
+              }`}
+            >
+              English
+            </button>
+            <button
+              type="button"
+              onClick={() => setLanguage("zh")}
+              className={`px-3 py-1 text-xs rounded-full border transition ${
+                language === "zh"
+                  ? "bg-blue-600 border-blue-500 text-white"
+                  : "bg-[#29292E] border-white/20 text-gray-300"
+              }`}
+            >
+              中文
+            </button>
+          </div>
 
+          <PromptBox ref={textareaRef} text={text} setText={setText} language={language} />
           <TagHelper
             text={text}
             setText={setText}
             textareaRef={textareaRef}
             defaultEmotion={selectedEmotion}
+            language={language}
           />
 
           <VoiceCard
@@ -249,20 +287,26 @@ export default function Home() {
         </div>
 
         {/* Right side - Output panel */}
-        <AudioPlayer
-          audio={audio}
-          audioUrl={audioUrl}
-          hasAudio={hasAudio}
-          waveform={waveform}
-          isPlaying={isPlaying}
-          setIsPlaying={setIsPlaying}
-          currentTime={currentTime}
-          setCurrentTime={setCurrentTime}
-          duration={duration}
-          volume={volume}
-          setVolume={setVolume}
-          removeOutput={removeOutput}
-        />
+        <div>
+          {/* Match the height of the language selector */}
+          <div className="pt-9" />
+
+          <AudioPlayer
+            audio={audio}
+            audioUrl={audioUrl}
+            hasAudio={hasAudio}
+            isGenerating={isGenerating}
+            waveform={waveform}
+            isPlaying={isPlaying}
+            setIsPlaying={setIsPlaying}
+            currentTime={currentTime}
+            setCurrentTime={setCurrentTime}
+            duration={duration}
+            volume={volume}
+            setVolume={setVolume}
+            removeOutput={removeOutput}
+          />
+        </div>
       </div>
     </section>
   );

@@ -1,18 +1,32 @@
 import { useEffect, useState } from "react";
 import { parseTags } from "../services/api";
 
-const EMOTION_TAGS = [
+const EMOTION_TAGS_EN = [
   "Neutral", "Happy", "Sad", "Angry", "Nervous", "Scared", "Whisper",
   "Excited", "Laugh", "Sigh", "Crying", "Serious", "Calm", "Confident",
   "Surprised", "Disappointed",
 ];
 
-const PAUSE_TAGS = [
+const EMOTION_TAGS_ZH = [
+  "中性", "开心", "伤心", "生气", "紧张", "害怕", "耳语",
+  "兴奋", "笑", "叹气", "哭泣", "严肃", "冷静", "自信",
+  "惊讶", "失望",
+];
+
+const PAUSE_TAGS_EN = [
   { label: "... short pause", value: "..." },
   { label: ".... long pause", value: "...." },
 ];
 
-export default function TagHelper({ text, setText, textareaRef, defaultEmotion }) {
+const PAUSE_TAGS_ZH = [
+  { label: "… 短停顿", value: "…" },
+  { label: "…… 长停顿", value: "……" },
+];
+
+export default function TagHelper({ text, setText, textareaRef, defaultEmotion, language = "en" }) {
+  const EMOTION_TAGS = language === "zh" ? EMOTION_TAGS_ZH : EMOTION_TAGS_EN;
+  const PAUSE_TAGS = language === "zh" ? PAUSE_TAGS_ZH : PAUSE_TAGS_EN;
+  
   const [segments, setSegments] = useState([]);
   const [previewError, setPreviewError] = useState("");
   const [customDuration, setCustomDuration] = useState("1.0");
