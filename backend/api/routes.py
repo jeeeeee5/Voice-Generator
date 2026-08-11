@@ -18,6 +18,7 @@ class TTSRequest(BaseModel):
     emotion_level: int = 50
     emotion: str = "Neutral"
     expressiveness: int = 50
+    language: str = "en"
 
 
 class ParseRequest(BaseModel):
@@ -56,6 +57,7 @@ def generate(request: TTSRequest):
         emotion_level=request.emotion_level,
         expressiveness=request.expressiveness,
         emotion=request.emotion,
+        language=request.language,
     )
     return FileResponse(
         output_path,

@@ -58,6 +58,13 @@ def generate_speech(
     if not segments:
         raise ValueError("No speech content found in the input text.")
 
+    # Resolve just the voice identity reference up front — sfx segments
+    # (Laugh/Sigh) need it for voice conversion, and it doesn't depend on
+    # emotion, so there's no need to wait for a speech segment to get it.
+    _, _, voice_ref, _, _, _ = build_speaker_refs(
+        voice, style, "Neutral", speaking_style, 0
+    )
+
     sample_rate = None
     audio_chunks = []  # list of ("speech", ndarray) | ("pause", seconds) | ("sfx", name)
     temp_files = []
@@ -87,14 +94,37 @@ def generate_speech(
             temp_path = f"outputs/generated_audio/temp_{uuid.uuid4().hex}.wav"
             temp_files.append(temp_path)
 
-            tts.tts_to_file(
-                text=seg["text"],
-                speaker_wav=speaker_refs,
-                language=language,
-                speed=final_speed,  # handled by the model itself, not a post-hoc stretch
-                temperature=dsp["temperature"],
-                file_path=temp_path,
-            )
+            # The repetition/length penalty tuning below was calibrated to fix
+            # repeated phrases in emotions like Scared, but it actively suppresses
+            # the breathy/noisy quality Whisper needs — so Whisper uses closer-to-
+            # default sampling params instead of the global tuned values.
+            if seg_emotion == "Whisper":
+                tts.tts_to_file(
+                    text=seg["text"],
+                    speaker_wav=speaker_refs,
+                    language=language,
+                    speed=final_speed,
+                    temperature=dsp["temperature"],
+                    repetition_penalty=2.0,
+                    length_penalty=1.0,
+                    top_p=0.85,
+                    top_k=50,
+                    file_path=temp_path,
+                )
+            else:
+                tts.tts_to_file(
+                    text=seg["text"],
+                    speaker_wav=speaker_refs,
+                    language=language,
+                    speed=final_speed,
+                    temperature=dsp["temperature"],
+                    repetition_penalty=6.0,
+                    length_penalty=1.3,
+                    top_p=0.85,
+                    top_k=50,
+                    enable_text_splitting=True,
+                    file_path=temp_path,
+                )
 
             seg_audio, sr = librosa.load(temp_path, sr=None)
             if sample_rate is None:
@@ -123,8 +153,10 @@ def generate_speech(
             elif kind == "pause":
                 resolved_chunks.append(generate_silence(payload, sample_rate))
             elif kind == "sfx":
-                resolved_chunks.append(load_sfx(payload, sample_rate))
-
+                sfx_dsp = EMOTION_DSP.get(payload.title(), EMOTION_DSP["Neutral"])
+                resolved_chunks.append(
+                    load_sfx(payload, sample_rate, voice_ref=voice_ref, pitch=pitch + sfx_dsp["pitch"])
+                )
         final_audio = concat_segments(resolved_chunks)
         sf.write(output_path, final_audio, sample_rate)
         return output_path
@@ -140,17 +172,16 @@ def generate_speech(
 
 
 if __name__ == "__main__":
-    # quick manual smoke test — includes emotion tags and pause markers
     result = generate_speech(
-        text="(Nervous) I don't know... maybe we should leave. (Sigh)",
-        voice="Sarah",
-        style="Storytelling",
+        text="(Calm) Everything is going to be fine.",
+        voice="<NewVoice>",
+        style="Warm",
         speaking_style="Casual",
         emotion="Neutral",
-        output_path="outputs/generated_audio/demo_tags.wav",
+        output_path="outputs/generated_audio/demo_new_voice.wav",
         speed=1.0,
         pitch=0,
         emotion_level=70,
-        expressiveness=60,
+        expressiveness=50,
     )
     print("Generated:", result)

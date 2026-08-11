@@ -39,11 +39,50 @@ EMOTION_TAGS = {
     "Surprised", "Disappointed",
 }
 
+# 放在 EMOTION_TAGS = {...} 定义之后
+TAG_ALIASES = {
+    "Neutral":      ["中性"],
+    "Happy":        ["开心", "開心", "高兴", "高興"],
+    "Sad":          ["伤心", "傷心", "难过", "難過"],
+    "Angry":        ["生气", "生氣"],
+    "Nervous":      ["紧张", "緊張"],
+    "Scared":       ["害怕"],
+    "Whisper":      ["耳语", "耳語", "低语", "低語"],
+    "Excited":      ["兴奋", "興奮"],
+    "Laugh":        ["笑"],
+    "Sigh":         ["叹气", "嘆氣"],
+    "Crying":       ["哭泣", "哭"],
+    "Serious":      ["严肃", "嚴肅"],
+    "Calm":         ["冷静", "冷靜"],
+    "Confident":    ["自信"],
+    "Surprised":    ["惊讶", "驚訝"],
+    "Disappointed": ["失望"],
+}
+
+_ALIAS_TO_CANONICAL = {}
+for _canon in EMOTION_TAGS:
+    _ALIAS_TO_CANONICAL[_canon.lower()] = _canon
+for _canon, _aliases in TAG_ALIASES.items():
+    for _alias in _aliases:
+        _ALIAS_TO_CANONICAL[_alias.lower()] = _canon
+
+_ALL_ALIAS_TEXT = sorted(_ALIAS_TO_CANONICAL.keys(), key=len, reverse=True)
+
 # These tags represent a standalone vocal effect (a breath, a laugh) rather
 # than a sustained emotional state — they don't become the "current
 # emotion" for the text that follows, they just insert a short expressive
 # beat of their own.
-SFX_TAGS = {"Sigh", "Laugh"}
+# Sigh is a standalone vocal effect only — it doesn't change the emotion
+# carried by the text that follows.
+PURE_SFX_TAGS = {"Sigh"}
+
+# Laugh is both a sound effect AND an emotional state — the laugh sound
+# plays, and the text that follows is also spoken with the Laugh emotion,
+# since laughing speech ("Haha, that's funny!") should sound like it's
+# still laughing, not flat.
+SFX_AND_EMOTION_TAGS = {"Sigh", "Laugh"}
+
+SFX_TAGS = PURE_SFX_TAGS | SFX_AND_EMOTION_TAGS
 
 # Pause durations in seconds. These are starting points — tune them
 # against real playback once wired into generate_voice.py.
@@ -55,22 +94,77 @@ PAUSE_DURATIONS = {
     "custom": 1.0,    # [Pause] with no explicit duration
 }
 
-_TAG_RE = re.compile(r"\(([A-Za-z]+)\)")
+_TAG_RE = re.compile(
+    r"\((" + "|".join(re.escape(a) for a in _ALL_ALIAS_TEXT) + r")\)",
+    re.IGNORECASE,
+)
 
 _CUSTOM_PAUSE_RE = re.compile(r"\[Pause(?::(\d+(?:\.\d+)?))?\]", re.IGNORECASE)
 
-# Order matters: longer/more specific patterns must be tried before shorter
-# ones that would otherwise swallow part of them (e.g. "...." before "...").
-# "?" and "!" are treated the same as "." for sentence-ending pauses —
-# they can't be part of an ellipsis, so no lookahead is needed for them.
 _PAUSE_MARKER_RE = re.compile(
     r"(?P<custom>\[Pause(?::\d+(?:\.\d+)?)?\])"
-    r"|(?P<long>\.{4,})"
-    r"|(?P<short>\.{3})"
-    r"|(?P<comma>,)"
-    r"|(?P<sentence_end>\.(?!\.)|[?!])",
+    r"|(?P<long>\.{4,}|…{2,})"
+    r"|(?P<short>\.{3}|…)"
+    r"|(?P<comma>,|，)"
+    r"|(?P<sentence_end>\.(?!\.)|[?!？！]|。)",
     re.IGNORECASE,
 )
+
+# Segments shorter than this (in words) are prone to hallucinated/dropped
+# syllables when sent to the TTS model on their own — there's not enough
+# content for the autoregressive decoder to establish good context. This
+# most often happens with dense emotion-tag switching, e.g.
+# "(Angry) No. (Happy) Wait." producing single-word segments.
+MIN_SEGMENT_WORDS = 3
+
+
+def _merge_short_segments(segments):
+    """
+    Post-process pass: merge a too-short speech segment into the next
+    speech segment when they share the same emotion, dropping the pause
+    between them. Non-speech segments (pause/sfx) and segments that would
+    merge across a different emotion are left alone — we only ever merge
+    same-emotion speech to avoid changing what emotion a word is spoken
+    in, or dropping a pause that's meant to separate two states.
+    """
+    merged = []
+    i = 0
+    n = len(segments)
+
+    while i < n:
+        seg = segments[i]
+
+        if seg["type"] != "speech":
+            merged.append(seg)
+            i += 1
+            continue
+
+        word_count = len(seg["text"].split())
+
+        # Too short, and there's a same-emotion speech segment just past
+        # the next item (typically a pause) to merge with — merge them
+        # and drop the pause in between, rather than sending a 1-2 word
+        # fragment to the model on its own.
+        if word_count < MIN_SEGMENT_WORDS and i + 2 < n:
+            next_seg = segments[i + 2]
+            if (
+                segments[i + 1]["type"] == "pause"
+                and next_seg["type"] == "speech"
+                and next_seg["emotion"] == seg["emotion"]
+            ):
+                combined_text = f"{seg['text']}, {next_seg['text']}"
+                merged.append({
+                    "type": "speech",
+                    "text": combined_text,
+                    "emotion": seg["emotion"],
+                })
+                i += 3  # skip seg, the pause, and next_seg — all consumed
+                continue
+
+        merged.append(seg)
+        i += 1
+
+    return merged
 
 
 def parse_tagged_text(raw_text: str, default_emotion: str = "Neutral"):
@@ -114,15 +208,15 @@ def parse_tagged_text(raw_text: str, default_emotion: str = "Neutral"):
     while i < length:
         tag_match = _TAG_RE.match(raw_text, i)
         if tag_match:
-            tag_name = tag_match.group(1).strip().title()
+            matched_text = tag_match.group(1).strip()
+            tag_name = _ALIAS_TO_CANONICAL.get(matched_text.lower())
 
             if tag_name in EMOTION_TAGS:
                 flush_pending()
                 if tag_name in SFX_TAGS:
                     segments.append({"type": "sfx", "sfx": tag_name.lower()})
-                    # SFX tags are a one-off beat — they don't change the
-                    # emotion carried by the text that follows.
-                else:
+
+                if tag_name in SFX_AND_EMOTION_TAGS or tag_name not in SFX_TAGS:
                     current_emotion = tag_name
             else:
                 # Unrecognised tag: keep it as literal text so it's
@@ -161,7 +255,7 @@ def parse_tagged_text(raw_text: str, default_emotion: str = "Neutral"):
         i += 1
 
     flush_pending()
-    return segments
+    return _merge_short_segments(segments)
 
 
 if __name__ == "__main__":

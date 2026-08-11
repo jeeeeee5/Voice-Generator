@@ -9,7 +9,7 @@ const PromptBox = forwardRef(function PromptBox({ text, setText }, ref) {
           ref={ref}
           value={text}
           onChange={(e) => setText(e.target.value)}
-          placeholder="Enter text to synthesize into voice... try tags like (Nervous), (Sigh), or pauses like ... and [Pause]"
+          placeholder={"Enter text to synthesize into voice...\nTry tags like (Nervous), (Sigh), or pauses like ... and [Pause]"}
           className="w-full h-full text-gray-200 text-lg bg-transparent focus:ring-0 placeholder:text-gray-500 resize-none outline-none"
         />
       </div>

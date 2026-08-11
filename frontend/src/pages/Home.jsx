@@ -170,7 +170,7 @@ export default function Home() {
       </p>
 
       {/* Main grid */}
-      <div className="grid grid-cols-1 md:grid-cols-[1fr_360px] gap-6 items-stretch">
+      <div className="grid grid-cols-1 md:grid-cols-[1fr_360px] gap-6 items-stretch mb-6">
         {/* Left side */}
         <div>
           <PromptBox ref={textareaRef} text={text} setText={setText} />

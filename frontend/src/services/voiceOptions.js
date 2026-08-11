@@ -9,6 +9,7 @@ export const voices = [
   { name: "Olivia", gender: "Female", age: "Young", tone: "Bright" },
   { name: "Sophia", gender: "Female", age: "Adult", tone: "Elegant" },
   { name: "Grace", gender: "Female", age: "Elder", tone: "Gentle" },
+  { name: "Alice", gender: "Female", age: "Adult", tone: "Calm, Gentle" },
 ];
 
 export const voiceStyles = [

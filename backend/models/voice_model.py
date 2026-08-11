@@ -15,6 +15,7 @@ VOICE_IDENTITY_MAP = {
     "Olivia": "voices/identity/olivia.wav",
     "Sophia": "voices/identity/sophia.wav",
     "Grace": "voices/identity/grace.wav",
+    "Alice": "voices/identity/alice.wav"
 }
 
 # Fallback used whenever a requested voice name isn't in the map above
@@ -68,21 +69,21 @@ DEFAULT_EMOTION_REF = "voices/emotion/neutral.wav"
 # Sigh/Whisper, etc). Tune by ear against real generations.
 EMOTION_DSP = {
     "Neutral":      {"speed": 1.00, "pitch": 0,  "gain": 1.00, "temperature": 0.65},
-    "Happy":        {"speed": 1.08, "pitch": 1,  "gain": 1.05, "temperature": 0.75},
-    "Sad":          {"speed": 0.90, "pitch": -2, "gain": 0.90, "temperature": 0.55},
-    "Angry":        {"speed": 1.04, "pitch": 0,  "gain": 1.15, "temperature": 0.85},
-    "Nervous":      {"speed": 0.95, "pitch": 0,  "gain": 0.95, "temperature": 0.85},
-    "Scared":       {"speed": 1.05, "pitch": 1,  "gain": 0.95, "temperature": 0.80},
-    "Whisper":      {"speed": 0.95, "pitch": 0,  "gain": 0.50, "temperature": 0.60},
-    "Excited":      {"speed": 1.12, "pitch": 1,  "gain": 1.10, "temperature": 0.85},
-    "Laugh":        {"speed": 1.05, "pitch": 0,  "gain": 1.05, "temperature": 0.75},
-    "Sigh":         {"speed": 0.95, "pitch": 0,  "gain": 0.85, "temperature": 0.60},
-    "Crying":       {"speed": 0.88, "pitch": -1, "gain": 0.85, "temperature": 0.85},
-    "Serious":      {"speed": 0.98, "pitch": -1, "gain": 1.00, "temperature": 0.55},
-    "Calm":         {"speed": 0.95, "pitch": 0,  "gain": 0.95, "temperature": 0.55},
-    "Confident":    {"speed": 1.00, "pitch": 0,  "gain": 1.05, "temperature": 0.65},
-    "Surprised":    {"speed": 1.08, "pitch": 2,  "gain": 1.05, "temperature": 0.80},
-    "Disappointed": {"speed": 0.92, "pitch": -1, "gain": 0.90, "temperature": 0.60},
+    "Happy":        {"speed": 1.02, "pitch": 0,  "gain": 1.02, "temperature": 0.75},
+    "Sad":          {"speed": 0.95, "pitch": -0.5, "gain": 0.92, "temperature": 0.55},
+    "Angry":        {"speed": 1.02, "pitch": 0,  "gain": 1.06, "temperature": 0.85},
+    "Nervous":      {"speed": 0.97, "pitch": 0,  "gain": 0.97, "temperature": 0.85},
+    "Scared":       {"speed": 1.02, "pitch": 0,  "gain": 0.97, "temperature": 0.80},
+    "Whisper":      {"speed": 0.97, "pitch": 0,  "gain": 0.70, "temperature": 0.78},
+    "Excited":      {"speed": 1.04, "pitch": 0,  "gain": 1.05, "temperature": 0.85},
+    "Laugh":        {"speed": 1.02, "pitch": 0,  "gain": 1.02, "temperature": 0.75},
+    "Sigh":         {"speed": 0.97, "pitch": 0,  "gain": 0.92, "temperature": 0.60},
+    "Crying":       {"speed": 0.93, "pitch": -0.5,  "gain": 0.90, "temperature": 0.75},
+    "Serious":      {"speed": 0.99, "pitch": 0,  "gain": 1.00, "temperature": 0.55},
+    "Calm":         {"speed": 0.97, "pitch": 0,  "gain": 0.97, "temperature": 0.55},
+    "Confident":    {"speed": 1.00, "pitch": 0,  "gain": 1.02, "temperature": 0.65},
+    "Surprised":    {"speed": 1.04, "pitch": 0,  "gain": 1.02, "temperature": 0.80},
+    "Disappointed": {"speed": 0.95, "pitch": -0.5,  "gain": 0.9, "temperature": 0.60},
 }
 
 SPEAKING_STYLE_MAP = {
