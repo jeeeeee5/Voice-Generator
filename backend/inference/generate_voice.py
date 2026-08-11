@@ -5,8 +5,8 @@ import librosa
 import soundfile as sf
 
 from models.loader import tts
-from models.voice_model import EMOTION_DSP
-from inference.preprocess import build_speaker_refs
+from models.voice_model import EMOTION_DSP, VOICE_DSP
+from inference.preprocess import build_speaker_refs, normalize_chinese
 from inference.tag_parser import parse_tagged_text
 from utils.audio import (
     apply_pitch,
@@ -18,6 +18,10 @@ from utils.audio import (
     concat_segments,
 )
 
+CHINESE_LANGUAGE_CODES = {"zh", "zh-cn", "zh-tw", "zh-hans", "zh-hant"}
+
+def detect_language(text: str) -> str:
+    return "zh-cn" if any("\u4e00" <= ch <= "\u9fff" for ch in text) else "en"
 
 def generate_speech(
     text: str,
@@ -53,6 +57,9 @@ def generate_speech(
     if out_dir:
         os.makedirs(out_dir, exist_ok=True)
 
+    if language.lower() in CHINESE_LANGUAGE_CODES:
+        language = "zh-cn"
+
     segments = parse_tagged_text(text, default_emotion=emotion)
 
     if not segments:
@@ -87,9 +94,23 @@ def generate_speech(
                 voice, style, seg_emotion, speaking_style, emotion_level
             )
 
-            print(f"[segment] emotion={seg_emotion!r} text={seg['text']!r}")
+            seg_text = seg["text"]
+            if language == "zh-cn":
+                seg_text = normalize_chinese(seg_text)
+
+            print(f"[segment] emotion={seg_emotion!r} text={seg_text!r}")
+
+            # Elder voice refinement
+            voice_dsp = VOICE_DSP.get(voice)
+            if seg_emotion == "Whisper":
+                voice_dsp = None   # Whisper's breathy quality is too fragile to survive
+                                    # additional pitch/gain layering — keep it on the
+                                    # emotion-only DSP path, skip the voice-level tweak.
 
             final_speed = speed * dsp["speed"]
+
+            if voice_dsp:
+                final_speed *= voice_dsp["speed"]
 
             temp_path = f"outputs/generated_audio/temp_{uuid.uuid4().hex}.wav"
             temp_files.append(temp_path)
@@ -100,7 +121,7 @@ def generate_speech(
             # default sampling params instead of the global tuned values.
             if seg_emotion == "Whisper":
                 tts.tts_to_file(
-                    text=seg["text"],
+                    text=seg_text,
                     speaker_wav=speaker_refs,
                     language=language,
                     speed=final_speed,
@@ -113,7 +134,7 @@ def generate_speech(
                 )
             else:
                 tts.tts_to_file(
-                    text=seg["text"],
+                    text=seg_text,
                     speaker_wav=speaker_refs,
                     language=language,
                     speed=final_speed,
@@ -131,9 +152,23 @@ def generate_speech(
                 sample_rate = sr
 
             final_pitch = pitch + dsp["pitch"]
+
+            if voice_dsp:
+                final_pitch += voice_dsp["pitch"]
             seg_audio = apply_pitch(seg_audio, sr, final_pitch)
-            seg_audio = apply_emotion_gain(seg_audio, dsp["gain"], emotion_level)
-            seg_audio = apply_expressiveness(seg_audio, expressiveness)
+
+            final_gain = dsp["gain"]
+            if voice_dsp:
+                final_gain *= voice_dsp["gain"]
+
+            seg_audio = apply_emotion_gain(seg_audio, final_gain, emotion_level)
+
+            # Boost expressiveness for exclamation marks without changing emotion
+            segment_expressiveness = expressiveness
+            if seg.get("intensity") == "strong":
+                segment_expressiveness = min(100, expressiveness + 20)
+
+            seg_audio = apply_expressiveness(seg_audio, segment_expressiveness)
             seg_audio = clip_audio(seg_audio)
 
             audio_chunks.append(("speech", seg_audio))

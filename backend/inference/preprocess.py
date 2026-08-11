@@ -6,6 +6,21 @@ from models.voice_model import (
     resolve_ref,
 )
 
+from opencc import OpenCC
+
+_T2S_CONVERTER = OpenCC("t2s")
+
+def normalize_chinese(text: str) -> str:
+    return _T2S_CONVERTER.convert(text)
+
+# These emotions have reference clips with vocal characteristics
+# (pitch/timbre) that can pull the output away from the target voice.
+# Skip emotion-reference blending for these emotions and rely on
+# EMOTION_DSP to preserve emotion while maintaining voice identity.
+#
+# Confirmed through isolated testing:
+# Sad, Crying, Disappointed, Serious, Sigh, and Nervous.
+NO_BLEND_EMOTIONS = {"Sad", "Disappointed", "Serious", "Sigh", "Nervous"}
 
 def build_speaker_refs(voice: str, style: str, emotion: str, speaking_style: str, emotion_level: int):
     """
@@ -24,13 +39,6 @@ def build_speaker_refs(voice: str, style: str, emotion: str, speaking_style: str
             VOICE_STYLE_MAP.get(style, ""),
             DEFAULT_STYLE_REF
         )
-
-    # These emotions' reference clips have vocal characteristics (pitch/
-    # timbre) too different from the voice identity refs — even a single
-    # copy in the blend is enough to make the output sound like a
-    # different person (confirmed by isolated testing). Skip blending
-    # them entirely and rely on DSP (speed/gain/pitch) instead.
-    NO_BLEND_EMOTIONS = {"Sad"}
 
     # Emotion: Neutral = no emotion reference
     emotion_ref = None
@@ -83,15 +91,15 @@ def build_speaker_refs(voice: str, style: str, emotion: str, speaking_style: str
     # contributes to the TTS voice blend.
 
     # Add emotion according to emotion level
-    if emotion_ref and emotion_level >= 15:
-        if emotion in ("Sad", "Crying", "Disappointed"):
-            # These emotions rely on speed/pitch/gain to convey mood
-            # instead of heavy reference-audio blending, since blending
-            # too much of the emotion reference risks making the voice
-            # sound like a different person (per supervisor feedback:
-            # voice identity must stay consistent across emotions).
-            emotion_weight = 1
-        elif emotion == "Whisper":
+    if emotion in NO_BLEND_EMOTIONS:
+        # Confirmed via isolated testing (test_raw.py, EN + ZH) that even a
+        # single copy of these emotions' reference audio pulls the output
+        # away from the voice identity — skip blending entirely and rely
+        # on EMOTION_DSP (speed/pitch/gain) instead.
+        emotion_ref = None
+        emotion_weight = 0
+    elif emotion_ref and emotion_level >= 15:
+        if emotion == "Whisper":
             emotion_weight = 2
         elif emotion_level < 50:
             emotion_weight = 1

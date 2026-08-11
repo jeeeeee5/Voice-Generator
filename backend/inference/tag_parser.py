@@ -94,6 +94,12 @@ PAUSE_DURATIONS = {
     "custom": 1.0,    # [Pause] with no explicit duration
 }
 
+EXCLAMATION_MARKS = {"!", "！"}
+
+
+def _has_exclamation(text):
+    return any(mark in text for mark in EXCLAMATION_MARKS)
+
 _TAG_RE = re.compile(
     r"\((" + "|".join(re.escape(a) for a in _ALL_ALIAS_TEXT) + r")\)",
     re.IGNORECASE,
@@ -117,6 +123,19 @@ _PAUSE_MARKER_RE = re.compile(
 # "(Angry) No. (Happy) Wait." producing single-word segments.
 MIN_SEGMENT_WORDS = 3
 
+def _segment_length(text):
+    """
+    Estimate segment length for both English and Chinese.
+    English uses whitespace-separated words.
+    Chinese uses CJK characters.
+    """
+    cjk_chars = re.findall(r"[\u4e00-\u9fff]", text)
+
+    if cjk_chars:
+        return len(cjk_chars)
+
+    return len(text.split())
+
 
 def _merge_short_segments(segments):
     """
@@ -139,24 +158,32 @@ def _merge_short_segments(segments):
             i += 1
             continue
 
-        word_count = len(seg["text"].split())
+        word_count = _segment_length(seg["text"])
 
         # Too short, and there's a same-emotion speech segment just past
         # the next item (typically a pause) to merge with — merge them
         # and drop the pause in between, rather than sending a 1-2 word
         # fragment to the model on its own.
         if word_count < MIN_SEGMENT_WORDS and i + 2 < n:
+            pause_seg = segments[i + 1]
             next_seg = segments[i + 2]
             if (
-                segments[i + 1]["type"] == "pause"
+                pause_seg["type"] == "pause"
                 and next_seg["type"] == "speech"
                 and next_seg["emotion"] == seg["emotion"]
+                and pause_seg["duration"] == PAUSE_DURATIONS["small"]
             ):
                 combined_text = f"{seg['text']}, {next_seg['text']}"
                 merged.append({
                     "type": "speech",
                     "text": combined_text,
                     "emotion": seg["emotion"],
+                    "intensity": (
+                        "strong"
+                        if seg.get("intensity") == "strong"
+                        or next_seg.get("intensity") == "strong"
+                        else "normal"
+                    ),
                 })
                 i += 3  # skip seg, the pause, and next_seg — all consumed
                 continue
@@ -194,12 +221,15 @@ def parse_tagged_text(raw_text: str, default_emotion: str = "Neutral"):
     def flush_pending():
         nonlocal pending_text
         stripped = pending_text.strip()
+
         if stripped:
             segments.append({
                 "type": "speech",
                 "text": stripped,
                 "emotion": current_emotion,
+                "intensity": "normal",
             })
+
         pending_text = ""
 
     i = 0
@@ -245,6 +275,16 @@ def parse_tagged_text(raw_text: str, default_emotion: str = "Neutral"):
                 duration = PAUSE_DURATIONS["small"]
             else:  # sentence_end: . or ? or !
                 duration = PAUSE_DURATIONS["sentence"]
+
+            pause_text = pause_match.group(0)
+
+            is_exclamation = "!" in pause_text or "！" in pause_text
+
+            if is_exclamation and segments:
+                for previous in reversed(segments):
+                    if previous["type"] == "speech":
+                        previous["intensity"] = "strong"
+                        break
 
             segments.append({"type": "pause", "duration": duration})
             i = pause_match.end()
