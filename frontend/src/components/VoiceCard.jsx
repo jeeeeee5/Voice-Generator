@@ -1,24 +1,12 @@
 import { useEffect, useState } from "react";
-import { voices, voiceStyles, emotions, speakingStyles } from "../services/voiceOptions";
+import { voices } from "../services/voiceOptions";
 import { voicePresets as defaultPresets } from "../services/presetData";
 
 export default function VoiceCard({
   selectedVoice,
   setSelectedVoice,
-  selectedVoiceStyle,
-  setSelectedVoiceStyle,
-  selectedEmotion,
-  setSelectedEmotion,
-  selectedSpeakingStyle,
-  setSelectedSpeakingStyle,
-  emotionLevel,
-  setEmotionLevel,
   speed,
   setSpeed,
-  pitch,
-  setPitch,
-  expressiveness,
-  setExpressiveness,
 }) {
   const [presets, setPresets] = useState(defaultPresets);
   const [selectedPreset, setSelectedPreset] = useState("");
@@ -38,13 +26,7 @@ export default function VoiceCard({
   const applyPreset = (preset) => {
     if (!preset) return;
     setSelectedVoice(preset.voice);
-    setSelectedVoiceStyle(preset.style);
-    setSelectedSpeakingStyle(preset.speakingStyle);
-    setSelectedEmotion(preset.emotion);
-    setEmotionLevel(preset.emotionLevel);
     setSpeed(preset.speed);
-    setPitch(preset.pitch);
-    setExpressiveness(preset.expressiveness);
   };
 
   const savePreset = () => {
@@ -53,13 +35,7 @@ export default function VoiceCard({
     const newPreset = {
       name: presetName.trim(),
       voice: selectedVoice,
-      style: selectedVoiceStyle,
-      speakingStyle: selectedSpeakingStyle,
-      emotion: selectedEmotion,
-      emotionLevel: emotionLevel,
       speed: speed,
-      pitch: pitch,
-      expressiveness: expressiveness,
     };
 
     const savedPresets = JSON.parse(
@@ -173,57 +149,6 @@ export default function VoiceCard({
         </select>
       </div>
 
-      {/* Voice Style */}
-      <div className="mb-5">
-        <label className="block text-sm font-medium text-gray-300 mb-2">Voice Style</label>
-
-        <select
-          value={selectedVoiceStyle}
-          onChange={(e) => setSelectedVoiceStyle(e.target.value)}
-          className="w-full bg-[#29292E] text-gray-200 border border-white/20 rounded-lg px-3 py-2.5 outline-none"
-        >
-          {voiceStyles.map((style) => (
-            <option key={style} value={style}>
-              {style}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      {/* Emotion */}
-      <div className="mb-5">
-        <label className="block text-sm font-medium text-gray-300 mb-2">Emotion</label>
-
-        <select
-          value={selectedEmotion}
-          onChange={(e) => setSelectedEmotion(e.target.value)}
-          className="w-full bg-[#29292E] text-gray-200 border border-white/20 rounded-lg px-3 py-2.5 outline-none"
-        >
-          {emotions.map((emotion) => (
-            <option key={emotion} value={emotion}>
-              {emotion}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      {/* Speaking Style */}
-      <div className="mb-5">
-        <label className="block text-sm font-medium text-gray-300 mb-2">Speaking Style</label>
-
-        <select
-          value={selectedSpeakingStyle}
-          onChange={(e) => setSelectedSpeakingStyle(e.target.value)}
-          className="w-full bg-[#29292E] text-gray-200 border border-white/20 rounded-lg px-3 py-2.5 outline-none"
-        >
-          {speakingStyles.map((style) => (
-            <option key={style} value={style}>
-              {style}
-            </option>
-          ))}
-        </select>
-      </div>
-
       {/* Voice Preset */}
       <div className="mb-4">
         <label className="block text-gray-300 text-sm font-semibold mb-2">Voice Preset</label>
@@ -254,7 +179,6 @@ export default function VoiceCard({
                 rounded-lg
                 text-gray-200
                 outline-none
-                focus:border-blue-500
               "
             >
               <option value="">None</option>
@@ -308,7 +232,6 @@ export default function VoiceCard({
               rounded-lg
               text-gray-300
               outline-none
-              focus:border-blue-500
             "
           />
 
@@ -320,12 +243,11 @@ export default function VoiceCard({
               w-20
               px-4
               h-10
-              bg-[#000042]
-              border border-blue-500
+              bg-[#1F1F23]
+              border border-white/20
               rounded-lg
               text-white
               font-semibold
-              hover:bg-blue-950
               transition
               disabled:opacity-40
               disabled:cursor-not-allowed

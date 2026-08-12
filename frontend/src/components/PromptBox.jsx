@@ -7,8 +7,8 @@ const PromptBox = forwardRef(function PromptBox({ text, setText, language = "en"
 
   return (
     <div className="relative mb-4">
-      <div className="absolute -inset-1 rounded-lg bg-purple-500/20 blur-xl pointer-events-none" />
-      <div className="relative w-full h-72 md:h-[246px] bg-[#29292E] border-2 border-white rounded-xl p-5">
+  
+      <div className="relative w-full h-72 md:h-[400px] bg-[#1F1F23] border-2 border-white/20 rounded-xl p-5">
         <textarea
           ref={ref}
           value={text}
