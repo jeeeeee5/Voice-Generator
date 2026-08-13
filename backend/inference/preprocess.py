@@ -22,19 +22,44 @@ def normalize_chinese(text: str) -> str:
 # Sad, Crying, Disappointed, Serious, Sigh, and Nervous.
 NO_BLEND_EMOTIONS = {"Sad", "Disappointed", "Serious", "Sigh", "Nervous"}
 
+# Kid voices sit far enough in pitch/timbre from the adult-recorded style
+# references (e.g. warm.wav) that blending in style_ref pulls the output
+# away from the kid identity reference and makes it sound less childlike.
+# Skip style blending entirely for these voices. (Currently unused while
+# the default `style` param is "None" for all voices, but kept in case
+# style selection is reintroduced.)
+NO_STYLE_BLEND_VOICES = {"Leo", "Max", "Oscar", "Mia", "Lily", "Ruby"}
+
+
+def resolve_voice_ref(voice: str):
+    """
+    Resolve the identity reference(s) for a voice name. Returns either a
+    single validated path (str) or a list of validated paths if the voice
+    is defined in VOICE_IDENTITY_MAP as a blend of multiple identity
+    recordings (used to derive a third tone variant from two existing
+    recordings instead of a dedicated one).
+    """
+    raw = VOICE_IDENTITY_MAP.get(voice, "")
+
+    if isinstance(raw, list):
+        return [resolve_ref(p, DEFAULT_VOICE_REF) for p in raw]
+
+    return resolve_ref(raw, DEFAULT_VOICE_REF)
+
+
 def build_speaker_refs(voice: str, style: str, emotion: str, speaking_style: str, emotion_level: int):
     """
     Resolve reference clips and build the blended speaker_wav list.
     """
 
-    voice_ref = resolve_ref(
-        VOICE_IDENTITY_MAP.get(voice, ""),
-        DEFAULT_VOICE_REF
-    )
+    voice_ref = resolve_voice_ref(voice)
+    # voice_ref may be a single path (str) or a list of paths for voices
+    # blended from multiple identity recordings (see resolve_voice_ref).
+    voice_ref_list = voice_ref if isinstance(voice_ref, list) else [voice_ref]
 
     # Style: None = no style reference
     style_ref = None
-    if style != "None":
+    if style != "None" and voice not in NO_STYLE_BLEND_VOICES:
         style_ref = resolve_ref(
             VOICE_STYLE_MAP.get(style, ""),
             DEFAULT_STYLE_REF
@@ -61,18 +86,17 @@ def build_speaker_refs(voice: str, style: str, emotion: str, speaking_style: str
     # output sound like a different person; voice_ref x4-5 alone gave the
     # best identity consistency + audio quality tradeoff).
     #
+    # For voices blended from multiple identity recordings, the 4 copies
+    # are distributed evenly across the recordings (e.g. 2 voices ->
+    # 2 copies each) so no single recording dominates the mix.
+    #
     # Whisper is an exception: its breathy quality gets diluted by any
-    # normal-voiced reference, so it uses fewer voice_ref copies to keep
-    # the whisper reference dominant in the mix (see emotion_weight below).
+    # normal-voiced reference, so it uses 1 copy of each identity
+    # recording instead of the full 4x weighting.
     if emotion == "Whisper":
-        speaker_refs = [voice_ref]
+        speaker_refs = list(voice_ref_list)
     else:
-        speaker_refs = [
-            voice_ref,
-            voice_ref,
-            voice_ref,
-            voice_ref,
-        ]
+        speaker_refs = [voice_ref_list[i % len(voice_ref_list)] for i in range(4)]
 
     # Add style only when selected — but skip for Whisper, since its
     # breathy/airy quality is easily diluted by normal-voiced references
@@ -91,11 +115,15 @@ def build_speaker_refs(voice: str, style: str, emotion: str, speaking_style: str
     # contributes to the TTS voice blend.
 
     # Add emotion according to emotion level
-    if emotion in NO_BLEND_EMOTIONS:
+    if emotion in NO_BLEND_EMOTIONS or (voice in NO_STYLE_BLEND_VOICES and emotion != "Whisper"):
         # Confirmed via isolated testing (test_raw.py, EN + ZH) that even a
         # single copy of these emotions' reference audio pulls the output
         # away from the voice identity — skip blending entirely and rely
-        # on EMOTION_DSP (speed/pitch/gain) instead.
+        # on EMOTION_DSP (speed/pitch/gain) instead. Kid voices skip
+        # emotion blending entirely for the same reason style blending is
+        # skipped for them (see NO_STYLE_BLEND_VOICES above) — except for
+        # Whisper, whose breathy quality depends on the reference audio
+        # itself and has no substitute via DSP alone.
         emotion_ref = None
         emotion_weight = 0
     elif emotion_ref and emotion_level >= 15:
@@ -115,7 +143,7 @@ def build_speaker_refs(voice: str, style: str, emotion: str, speaking_style: str
     return (
         speaker_refs,
         emotion_weight,
-        voice_ref,
+        voice_ref_list[0],  # representative single path for downstream use (e.g. load_sfx)
         style_ref,
         emotion_ref,
         speaking_style_ref

@@ -6,11 +6,9 @@ const PromptBox = forwardRef(function PromptBox({ text, setText, language = "en"
     : "Enter text to synthesize into voice...\nTry tags like (Nervous), (Sigh), or pauses like ... and [Pause]";
 
   return (
-    <div className="relative mb-4">
-  
-      <div className="relative w-full h-72 md:h-[400px] bg-[#1F1F23] border-2 border-white/20 rounded-xl p-5">
+    <div ref={ref} className="relative mb-4">
+      <div className="relative w-full h-72 md:h-[246px] bg-[#29292E] border-2 border-white/20 rounded-xl p-5">
         <textarea
-          ref={ref}
           value={text}
           onChange={(e) => setText(e.target.value)}
           placeholder={placeholder}

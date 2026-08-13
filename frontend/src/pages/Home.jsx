@@ -1,13 +1,36 @@
-import { useRef, useState } from "react";
 import PromptBox from "../components/PromptBox";
-import VoiceCard from "../components/VoiceCard";
-import SettingsPanel from "../components/SettingsPanel";
+import SidePanel from "../components/SidePanel";
 import AudioPlayer from "../components/AudioPlayer";
 import { generateVoice as requestVoice } from "../services/api";
-
+import { Download } from "lucide-react";
+import { useRef, useState, useLayoutEffect } from "react";
 
 export default function Home() {
   const textareaRef = useRef(null);
+
+  const [barStyle, setBarStyle] = useState({ left: 0, width: "100%" });
+
+  useLayoutEffect(() => {
+    const el = textareaRef.current;
+    if (!el) return;
+
+    const updatePosition = () => {
+      const rect = el.getBoundingClientRect();
+      setBarStyle({ left: rect.left, width: rect.width });
+    };
+
+    updatePosition();
+
+    const observer = new ResizeObserver(updatePosition);
+    observer.observe(el);
+    window.addEventListener("resize", updatePosition);
+
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", updatePosition);
+    };
+  }, []);
+
   const [clicked, setClicked] = useState(false);
   const [text, setText] = useState("");
   const [audioUrl, setAudioUrl] = useState(null);
@@ -20,12 +43,12 @@ export default function Home() {
   const [isGenerating, setIsGenerating] = useState(false);
 
   { /* State for voice options */ }
-  const [selectedVoice, setSelectedVoice] = useState("Michael");
+  const [selectedVoice, setSelectedVoice] = useState("Ethan");
 
   { /* State for speech controls */ }
   const [speed, setSpeed] = useState(1);
 
-  const [language, setLanguage] = useState("en"); // "en" | "zh"
+  const [language, setLanguage] = useState("auto");
 
   const generateVoice = async () => {
     if (!text.trim()) {
@@ -47,7 +70,7 @@ export default function Home() {
     setCurrentTime(0);
     setDuration(0);
 
-    if(audioUrl) {
+    if (audioUrl) {
       URL.revokeObjectURL(audioUrl);
     }
 
@@ -58,7 +81,7 @@ export default function Home() {
         text: text,
         voice: selectedVoice,
         speed: speed,
-        language: language === "zh" ? "zh-cn" : "en",
+        language: language === "zh" ? "zh-cn" : language === "en" ? "en" : "auto",
       });
 
       const url = URL.createObjectURL(audioBlob);
@@ -100,20 +123,15 @@ export default function Home() {
   };
 
   return (
-    <section className="pt-6 px-6 md:px-28 xl:px-32">
-      {/* Heading */}
-      <h1 className="text-4xl font-bold mb-2">
-        Voice Generator
-      </h1>
+    <>
+      <div className="flex min-h-screen">
+        {/* Main content */}
+        <div className="flex-1 lg:px-25 md:px-16 sm:px-16 pt-14 pb-24">
+          {/* Heading */}
+          <h1 className="text-2xl font-semibold text-center mb-16">
+            Welcome to Voice Generator !
+          </h1>
 
-      <p className="text-indigo-300/80 text-2xl mb-6">
-        Local TTS Engine
-      </p>
-
-      {/* Main grid */}
-      <div className="grid grid-cols-1 md:grid-cols-[1fr_360px] gap-6">
-        {/* Left side */}
-        <div className="mb-4">
           <PromptBox
             ref={textareaRef}
             text={text}
@@ -121,26 +139,46 @@ export default function Home() {
             language={language}
           />
 
-          {/* Generate buttons */}
-          <div className="flex gap-3 mt-4 mb-4">
+          {/* Action row: download (left) + generate (right) */}
+          <div className="flex items-center justify-between mt-4 mb-4">
+            <button
+              onClick={() => {
+                if (!audioUrl) return;
+                const link = document.createElement("a");
+                link.href = audioUrl;
+                link.download = "speech.wav";
+                link.click();
+              }}
+              disabled={!audioUrl}
+              className="
+                p-2
+                text-gray-400
+                hover:text-white
+                transition
+                disabled:opacity-30
+                disabled:cursor-not-allowed
+              "
+              title="Download .wav"
+            >
+              <Download className="w-7 h-7" strokeWidth={2.5} />
+            </button>
+
             <button
               onClick={generateVoice}
               disabled={clicked || !text.trim()}
               className="
-                flex-1 h-12
+                px-5 h-11 w-35
                 flex items-center justify-center
-                bg-[#29292E]
-                border-2 border-white/20
-                rounded-xl
-                text-xl text-white font-bold
+                bg-white/20
+                border border-white/20
+                rounded-2xl
+                text-base text-white font-semibold
                 active:scale-95 transition
+                disabled:opacity-40
               "
             >
-              <span className="text-2xl font-bold">
-                {clicked ? "Generating..." : "Generate Voice"}
-              </span>
+              {clicked ? "Generating..." : "Generate"}
             </button>
-
           </div>
 
           {/* Error message */}
@@ -149,60 +187,49 @@ export default function Home() {
               {error}
             </p>
           )}
-
-          <AudioPlayer
-            audio={audio}
-            audioUrl={audioUrl}
-            isGenerating={isGenerating}
-            isPlaying={isPlaying}
-            setIsPlaying={setIsPlaying}
-            currentTime={currentTime}
-            setCurrentTime={setCurrentTime}
-            duration={duration}
-          />
         </div>
 
-        {/* Right side */}
-        <div className="md:sticky md:top-6 md:self-start md:max-h-[calc(100vh-12rem)] md:overflow-y-auto md:pr-2 md:pt-1 md:pb-6 sm:mb-12 md:mb-12 lg:mb-0 custom-scrollbar">
-          <div className="mb-3">
-            <label className="block text-sm font-semibold text-gray-300 mb-1">
-              Language
-            </label>
-            <select
-              value={language}
-              onChange={(e) => setLanguage(e.target.value)}
-              className="
-                w-full
-                bg-[#29292E]
-                border-2 border-white/20
-                rounded-lg
-                text-gray-200
-                px-3 py-2
-                focus:outline-none 
-                cursor-pointer
-              "
-            >
-              <option value="en">English</option>
-              <option value="zh">中文</option>
-            </select>
-          </div>
-
-
-          <VoiceCard
+        {/* Side panel (desktop) */}
+        <aside className="
+          hidden md:flex md:flex-col md:justify-center
+          w-[360px] shrink-0
+          border-l-8 border-[#1A1A1D]
+          sticky top-0 h-screen
+          overflow-y-auto
+          custom-scrollbar
+          px-8 py-6
+        ">
+          <SidePanel
             selectedVoice={selectedVoice}
             setSelectedVoice={setSelectedVoice}
             speed={speed}
             setSpeed={setSpeed}
           />
-
-          <SettingsPanel
-            speed={speed}
-            setSpeed={setSpeed}
-          />
-
-
-        </div>
+        </aside>
       </div>
-    </section>
+
+      {/* Side panel content (mobile, stacked below main content) */}
+      <div className="md:hidden px-6 pb-24">
+        <SidePanel
+          selectedVoice={selectedVoice}
+          setSelectedVoice={setSelectedVoice}
+          speed={speed}
+          setSpeed={setSpeed}
+        />
+      </div>
+
+      {/* Fixed bottom audio bar */}
+      <AudioPlayer
+        audio={audio}
+        audioUrl={audioUrl}
+        isGenerating={isGenerating}
+        isPlaying={isPlaying}
+        setIsPlaying={setIsPlaying}
+        currentTime={currentTime}
+        setCurrentTime={setCurrentTime}
+        duration={duration}
+        barStyle={barStyle}
+      />
+    </>
   );
 }

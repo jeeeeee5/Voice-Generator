@@ -5,18 +5,38 @@ import os
 # ---------------------------------------------------------------------------
 
 VOICE_IDENTITY_MAP = {
-    "John": "voices/identity/john.wav",
-    "Michael": "voices/identity/michael.wav",
-    "David": "voices/identity/david.wav",
-    "James": "voices/identity/james.wav",
-    "William": "voices/identity/william.wav",
-    "Emma": "voices/identity/emma.wav",
-    "Sarah": "voices/identity/sarah.wav",
-    "Olivia": "voices/identity/olivia.wav",
-    "Sophia": "voices/identity/sophia.wav",
-    "Grace": "voices/identity/grace.wav",
-    "Alice": "voices/identity/alice.wav",
-    "Evelyn": "voices/identity/evelyn.wav"
+    # Male Kid
+    "Leo": "voices/identity/kid_male.wav",
+    "Max": [
+        "voices/identity/kid_male.wav",
+        "voices/identity/kid_male.wav",
+    ],
+    "Oscar": "voices/identity/kid_male.wav",
+
+    # Male Teen
+    "Ethan": "voices/identity/michael.wav",
+    "Noah": ["voices/identity/michael.wav", "voices/identity/john.wav"],
+    "Lucas": "voices/identity/john.wav",
+
+    # Male Elder (David — genuinely Elder)
+    "Arthur": "voices/identity/james.wav",
+    "Henry": "voices/identity/david.wav",
+    "Edward": "voices/identity/william.wav",
+
+    # Female Kid
+    "Mia": "voices/identity/kid_female.wav",
+    "Lily": ["voices/identity/kid_female.wav", "voices/identity/kid_female2.wav"],
+    "Ruby": "voices/identity/kid_female2.wav",
+
+    # Female Teen
+    "Chloe": "voices/identity/teen_female.wav",
+    "Zoe": ["voices/identity/teen_female.wav", "voices/identity/olivia.wav"],
+    "Ivy": "voices/identity/olivia.wav",
+
+    # Female Elder (Evelyn)
+    "Margaret": "voices/identity/evelyn.wav",
+    "Eleanor": ["voices/identity/evelyn.wav", "voices/identity/grace.wav"],
+    "Charlotte": "voices/identity/grace.wav",
 }
 
 # Fallback used whenever a requested voice name isn't in the map above
@@ -88,12 +108,44 @@ EMOTION_DSP = {
 }
 
 VOICE_DSP = {
-    "Evelyn": {
-        "speed": 0.80,
-        "pitch": -0.5,
-        "gain": 0.94,
-    },
+    # --- Male Kid  ---
+    "Leo":   {"speed": 0.97, "pitch": -0.2, "gain": 0.95},   # Soft
+    "Max":   {"speed": 0.99, "pitch": -0.2, "gain": 1.00},   # Gentle
+    "Oscar": {"speed": 1.00, "pitch": 0.2, "gain": 1.00},   # Bright
+
+    # --- Male Teen  ---
+    "Ethan": {"speed": 0.97, "pitch": 0.0, "gain": 0.95},
+    "Noah":  {"speed": 1.00, "pitch": 0.0, "gain": 1.00},
+    "Lucas": {"speed": 1.04, "pitch": 0.0, "gain": 1.05},
+
+    # --- Male Elder  ---
+    "Arthur": {"speed": 0.80, "pitch": -1.3, "gain": 0.95},
+    "Henry":  {"speed": 0.88, "pitch": -1.0, "gain": 1.00},
+    "Edward": {"speed": 0.91, "pitch": -1.0, "gain": 1.00},
+
+    # --- Female Kid ---
+    "Mia":  {"speed": 0.97, "pitch": -0.1, "gain": 1.00},
+    "Lily": {"speed": 0.98, "pitch": 0.0, "gain": 1.00},
+    "Ruby": {"speed": 1.00, "pitch": 0.5, "gain": 1.00},
+
+    # --- Female Teen  ---
+    "Chloe": {"speed": 0.97, "pitch": 0.2, "gain": 0.95},
+    "Zoe":   {"speed": 1.00, "pitch": 0.0, "gain": 1.00},
+    "Ivy":   {"speed": 1.00, "pitch": 0.2, "gain": 1.00},
+
+    # --- Female Elder ---
+    "Margaret":  {"speed": 0.85, "pitch": -1.2, "gain": 0.95},
+    "Eleanor":   {"speed": 0.88, "pitch": -1.0, "gain": 1.00},
+    "Charlotte": {"speed": 0.91, "pitch": -1.0, "gain": 1.05},
 }
+
+# Voices whose identity reference recording is in Chinese (or a blend that
+# includes a Chinese-recorded clip). When these are used to synthesize
+# English text, the mismatch between the reference's language/prosody and
+# the target language increases the odds of random generation errors
+# (dropped/repeated words, garbled pronunciation). Used in generate_voice.py
+# to select more conservative sampling params for this combination.
+CHINESE_REF_VOICES = {"Leo", "Max", "Oscar", "Mia", "Lily", "Ruby", "Chloe", "Zoe"}
 
 SPEAKING_STYLE_MAP = {
     "Casual": "voices/speaking_style/casual.wav",
@@ -122,8 +174,12 @@ def check_all_refs():
         ("speaking style", SPEAKING_STYLE_MAP),
     ):
         for name, path in mapping.items():
-            status = "OK" if os.path.exists(path) else "MISSING"
-            print(f"[{group_name}] {name} -> {path} ({status})")
+            # voice identity entries may be a single path (str) or a list
+            # of paths for voices blended from multiple identity recordings.
+            paths = path if isinstance(path, list) else [path]
+            for p in paths:
+                status = "OK" if os.path.exists(p) else "MISSING"
+                print(f"[{group_name}] {name} -> {p} ({status})")
 
 
 # Run the same startup sanity check the original tts_engine.py ran at import time

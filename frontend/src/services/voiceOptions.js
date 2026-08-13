@@ -1,43 +1,21 @@
 export const voices = [
-  { name: "John", gender: "Male", age: "Adult", tone: "Gentle" },
-  { name: "Michael", gender: "Male", age: "Young Adult", tone: "Warm" },
-  { name: "David", gender: "Male", age: "Elder", tone: "Deep" },
-  { name: "James", gender: "Male", age: "Adult", tone: "Professional" },
-  { name: "William", gender: "Male", age: "Elder", tone: "Calm" },
-  { name: "Emma", gender: "Female", age: "Young Adult", tone: "Soft" },
-  { name: "Sarah", gender: "Female", age: "Adult", tone: "Warm" },
-  { name: "Olivia", gender: "Female", age: "Young", tone: "Bright" },
-  { name: "Sophia", gender: "Female", age: "Adult", tone: "Elegant" },
-  { name: "Grace", gender: "Female", age: "Elder", tone: "Gentle" },
-  { name: "Alice", gender: "Female", age: "Adult", tone: "Calm, Gentle" },
-  { name: "Evelyn", gender: "Female", age: "Elder", tone: "Calm, Gentle" },
+  { name: "Leo", gender: "Male", age: "Kid", tone: "Soft" },
+  { name: "Max", gender: "Male", age: "Kid", tone: "Gentle" },
+  { name: "Oscar", gender: "Male", age: "Kid", tone: "Bright" },
+  { name: "Ethan", gender: "Male", age: "Teen", tone: "Soft" },
+  { name: "Noah", gender: "Male", age: "Teen", tone: "Gentle" },
+  { name: "Lucas", gender: "Male", age: "Teen", tone: "Bright" },
+  { name: "Arthur", gender: "Male", age: "Elder", tone: "Soft" },
+  { name: "Henry", gender: "Male", age: "Elder", tone: "Gentle" },
+  { name: "Edward", gender: "Male", age: "Elder", tone: "Bright" },
+  { name: "Mia", gender: "Female", age: "Kid", tone: "Soft" },
+  { name: "Lily", gender: "Female", age: "Kid", tone: "Gentle" },
+  { name: "Ruby", gender: "Female", age: "Kid", tone: "Bright" },
+  { name: "Chloe", gender: "Female", age: "Teen", tone: "Soft" },
+  { name: "Zoe", gender: "Female", age: "Teen", tone: "Gentle" },
+  { name: "Ivy", gender: "Female", age: "Teen", tone: "Bright" },
+  { name: "Margaret", gender: "Female", age: "Elder", tone: "Soft" },
+  { name: "Eleanor", gender: "Female", age: "Elder", tone: "Gentle" },
+  { name: "Charlotte", gender: "Female", age: "Elder", tone: "Bright" },
 ];
 
-export const voiceStyles = [
-  "None",
-  "Warm",
-  "Calm",
-  "Deep",
-  "Bright",
-  "Emotional",
-  "Serious",
-  "Narrator",
-  "Storytelling",
-];
-
-export const emotions = [
-  "Neutral",
-  "Happy",
-  "Sad",
-  "Angry",
-  "Fearful",
-  "Excited",
-];
-
-export const speakingStyles = [
-  "None",
-  "Casual",
-  "Professional",
-  "Cinematic",
-  "Game Character",
-];

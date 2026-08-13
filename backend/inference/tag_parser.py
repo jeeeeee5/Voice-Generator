@@ -101,7 +101,7 @@ def _has_exclamation(text):
     return any(mark in text for mark in EXCLAMATION_MARKS)
 
 _TAG_RE = re.compile(
-    r"\((" + "|".join(re.escape(a) for a in _ALL_ALIAS_TEXT) + r")\)",
+    r"[\(（](" + "|".join(re.escape(a) for a in _ALL_ALIAS_TEXT) + r")[\)）]",
     re.IGNORECASE,
 )
 

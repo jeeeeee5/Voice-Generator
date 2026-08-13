@@ -5,7 +5,7 @@ import librosa
 import soundfile as sf
 
 from models.loader import tts
-from models.voice_model import EMOTION_DSP, VOICE_DSP
+from models.voice_model import EMOTION_DSP, VOICE_DSP, CHINESE_REF_VOICES
 from inference.preprocess import build_speaker_refs, normalize_chinese
 from inference.tag_parser import parse_tagged_text
 from utils.audio import (
@@ -21,20 +21,33 @@ from utils.audio import (
 CHINESE_LANGUAGE_CODES = {"zh", "zh-cn", "zh-tw", "zh-hans", "zh-hant"}
 
 def detect_language(text: str) -> str:
-    return "zh-cn" if any("\u4e00" <= ch <= "\u9fff" for ch in text) else "en"
+    chinese_chars = sum(
+        1 for ch in text
+        if "\u4e00" <= ch <= "\u9fff"
+    )
+
+    english_chars = sum(
+        1 for ch in text
+        if ch.isascii() and ch.isalpha()
+    )
+
+    if chinese_chars > english_chars:
+        return "zh-cn"
+
+    return "en"
 
 def generate_speech(
     text: str,
     voice: str,
-    style: str,
+    style: str = "None",
     emotion: str = "Neutral",
-    speaking_style: str = "Casual",
+    speaking_style: str = "None",
     output_path: str = "outputs/generated_audio/result.wav",
     speed: float = 1.0,
     pitch: float = 0,
     emotion_level: int = 50,
     expressiveness: int = 50,
-    language: str = "en",
+    language: str = "auto",
 ) -> str:
     """
     Generate speech from text that may contain (Emotion) tags and pause
@@ -57,8 +70,17 @@ def generate_speech(
     if out_dir:
         os.makedirs(out_dir, exist_ok=True)
 
-    if language.lower() in CHINESE_LANGUAGE_CODES:
+    print(f"[language] input={language!r}")
+    print(f"[text] {text!r}")
+
+    if language.lower() == "auto":
+        language = detect_language(text)
+    elif language.lower() in CHINESE_LANGUAGE_CODES:
         language = "zh-cn"
+    elif language.lower() in {"en", "english"}:
+        language = "en"
+
+    print(f"[language] detected={language!r}")
 
     segments = parse_tagged_text(text, default_emotion=emotion)
 
@@ -119,6 +141,12 @@ def generate_speech(
             # repeated phrases in emotions like Scared, but it actively suppresses
             # the breathy/noisy quality Whisper needs — so Whisper uses closer-to-
             # default sampling params instead of the global tuned values.
+            is_cross_lingual_risk = (
+                voice in CHINESE_REF_VOICES
+                and language != "zh-cn"
+                and seg_emotion != "Whisper"
+            )
+
             if seg_emotion == "Whisper":
                 tts.tts_to_file(
                     text=seg_text,
@@ -130,6 +158,24 @@ def generate_speech(
                     length_penalty=1.0,
                     top_p=0.85,
                     top_k=50,
+                    file_path=temp_path,
+                )
+            elif is_cross_lingual_risk:
+                # More conservative sampling to reduce random generation
+                # errors (dropped/repeated words, garbled pronunciation)
+                # when a Chinese-recorded identity reference is used to
+                # synthesize English text. See CHINESE_REF_VOICES.
+                tts.tts_to_file(
+                    text=seg_text,
+                    speaker_wav=speaker_refs,
+                    language=language,
+                    speed=final_speed,
+                    temperature=max(0.5, dsp["temperature"] - 0.1),
+                    repetition_penalty=8.0,
+                    length_penalty=1.3,
+                    top_p=0.80,
+                    top_k=40,
+                    enable_text_splitting=True,
                     file_path=temp_path,
                 )
             else:
